@@ -1,0 +1,50 @@
+QMainWindow {
+    background-color: #090014;
+}
+
+QWidget {
+    color: #f3d6ff;
+    font-family: "Segoe UI";
+    font-size: 18px;
+}
+
+QLabel#title {
+    font-size: 38px;
+    font-weight: bold;
+    color: #ffb6ff;
+}
+
+QLabel#subtitle {
+    font-size: 20px;
+    color: #d6b3ff;
+}
+
+QLabel#price {
+    font-size: 48px;
+    color: gold;
+    font-weight: bold;
+}
+
+QPushButton {
+    background-color: #5d1a75;
+    border: 2px solid #ff66ff;
+    border-radius: 18px;
+    padding: 16px;
+    font-size: 18px;
+}
+
+QPushButton:hover {
+    background-color: #8c2eb0;
+}
+
+QProgressBar {
+    border: 2px solid #ff66ff;
+    border-radius: 10px;
+    text-align: center;
+    height: 24px;
+}
+
+QProgressBar::chunk {
+    background-color: #ff00ff;
+    border-radius: 8px;
+}
