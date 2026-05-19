@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>DeepWomb™ — Квантовый поток сознания</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: radial-gradient(circle at 10% 30%, #0a0a1a, #03010a);
+            font-family: 'Segoe UI', 'Orbitron', 'Courier New', monospace;
+            color: #f0eef7;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* главный контейнер окна — фиксированная высота, но с внутренним скроллом */
+        .app-window {
+            width: 1300px;
+            max-width: 100%;
+            height: 90vh;
+            max-height: 90vh;
+            background: rgba(10, 5, 20, 0.75);
+            backdrop-filter: blur(3px);
+            border-radius: 48px;
+            border: 1px solid rgba(255, 0, 200, 0.3);
+            box-shadow: 0 0 40px rgba(255, 0, 212, 0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* внешняя обрезка, скролл внутри */
+        }
+
+        /* стек экранов — занимает всё свободное место */
+        .stack {
+            flex: 1;
+            min-height: 0;   /* важно для корректного скролла внутри потомков */
+            position: relative;
+        }
+
+        /* каждый экран — прокручиваемый контейнер */
+        .screen {
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            padding: 24px 30px;
+            scrollbar-width: thin;
+            transition: opacity 0.2s ease;
+        }
+
+        .screen.hidden {
+            display: none;
+        }
+
+        /* общие стили */
+        h1, .title {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ff99ff, #ff44cc, #aa66ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 5px #ff44aa80;
+            letter-spacing: 1px;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: #ddbbff;
+            border-left: 3px solid #ff44dd;
+            padding-left: 15px;
+            margin: 15px 0;
+        }
+
+        /* кнопка с неон-свечением */
+        .glow-btn {
+            background: linear-gradient(95deg, #2a0a2a, #1a0525);
+            border: 1px solid #ff44dd;
+            color: #ffddff;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 60px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 8px #ff44aa;
+            font-family: inherit;
+            margin: 8px 0;
+        }
+
+        .glow-btn:hover {
+            background: #3f1a4a;
+            box-shadow: 0 0 20px #ff44ff, 0 0 5px #ff88ff;
+            transform: scale(1.01);
+        }
+
+        .glow-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* карточки тарифов */
+        .tariff-card {
+            background: rgba(20, 5, 30, 0.7);
+            border-radius: 24px;
+            padding: 12px 20px;
+            margin: 8px 0;
+            border: 1px solid #ff77cc40;
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .tariff-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+        }
+        .tariff-price {
+            font-family: monospace;
+            font-size: 1.3rem;
+            color: #ffcc88;
+        }
+
+        /* метрики премиум сканера */
+        .metrics {
+            background: #01000470;
+            border-radius: 20px;
+            padding: 12px;
+            font-size: 0.8rem;
+            font-family: monospace;
+            border-left: 3px solid magenta;
+            margin: 15px 0;
+            white-space: pre-line;
+        }
+
+        /* прогресс-бар */
+        progress, .progress-bar {
+            width: 100%;
+            height: 18px;
+            border-radius: 40px;
+            overflow: hidden;
+            margin: 12px 0;
+        }
+        progress::-webkit-progress-bar { background-color: #2a1a2e; border-radius: 40px; }
+        progress::-webkit-progress-value { background: linear-gradient(90deg, #ff44aa, #ff88ff); border-radius: 40px; }
+
+        /* виджет луны (вращающийся круг) */
+        .moon-spinner {
+            width: 140px;
+            height: 140px;
+            background: radial-gradient(circle at 30% 30%, #ffe0b3, #ddaa66);
+            border-radius: 50%;
+            box-shadow: 0 0 20px #ffaa66;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            transition: transform 0.05s linear;
+            margin: 10px auto;
+        }
+
+        /* контейнер фейк-сканера (бегущая полоска) */
+        .fake-scanner-canvas {
+            background: #100b18;
+            border-radius: 20px;
+            width: 100%;
+            height: 70px;
+            position: relative;
+            overflow: hidden;
+            margin: 10px 0;
+            border: 1px solid #ff33cc;
+        }
+        canvas.fake-scan {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* прочие блоки */
+        .status-text {
+            font-size: 0.9rem;
+            background: #1f1029;
+            padding: 6px 12px;
+            border-radius: 40px;
+            display: inline-block;
+            margin: 5px 0;
+        }
+
+        .flex-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 20px 0;
+        }
+
+        hr {
+            border-color: #ff44aa40;
+            margin: 15px 0;
+        }
+
+        /* скролл */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f0e24;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #ff44aa;
+            border-radius: 10px;
+        }
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin: 16px 0 8px;
+            color: #ffbbff;
+        }
+
+        /* для мобильных устройств уменьшим отступы */
+        @media (max-width: 700px) {
+            .screen {
+                padding: 16px;
+            }
+            .title {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="app-window">
+    <div class="stack">
+        <!-- ЭКРАН ПРИВЕТСТВИЯ -->
+        <div id="welcomeScreen" class="screen">
+            <div style="display: flex; flex-direction: column; justify-content: center; min-height: 100%; text-align: center;">
+                <h1 class="title">✨ Открой Маточный Поток Сознания ✨</h1>
+                <p class="subtitle" style="border-left: none; text-align: center;">Соедини денежный канал с вибрациями вселенной</p>
+                <div style="height: 30px;"></div>
+                <button id="welcomeToPaymentBtn" class="glow-btn" style="font-size: 1.3rem; padding: 16px;">🌙 ВОЙТИ В КОСМИЧЕСКИЙ ПОТОК 🌙</button>
+            </div>
+        </div>
+
+        <!-- ЭКРАН ОПЛАТЫ (250₽ фейк) -->
+        <div id="paymentScreen" class="screen hidden">
+            <div style="max-width: 500px; margin: 0 auto; text-align: center;">
+                <h2 class="title">💸 АКТИВАЦИЯ МАТОЧНОГО ПОТОКА</h2>
+                <div style="font-size: 3rem; font-weight: bold; margin: 20px; color: #ffcc88;">250 ₽</div>
+                <div id="paymentStatus" class="status-text">🌙 Готово к синхронизации</div>
+                <progress id="paymentProgress" value="0" max="100" style="width: 100%; margin: 20px 0;"></progress>
+                <button id="startPaymentBtn" class="glow-btn">💳 Активировать маточный поток</button>
+            </div>
+        </div>
+
+        <!-- ЭКРАН РИТУАЛА (вся магия) -->
+        <div id="ritualScreen" class="screen hidden">
+            <div style="max-width: 1000px; margin: 0 auto;">
+                <h1 class="title">🌀 КВАНТОВОЕ РАСКРЫТИЕ МАТКИ</h1>
+                
+                <!-- таймер -->
+                <div id="ritualTimer" class="status-text" style="font-size: 1.2rem;">⏳ До открытия потока: 11:11:11</div>
+                <div id="cosmicConnection" class="status-text" style="margin-top: 8px;">🔮 Связь с космосом: СТАБИЛЬНА</div>
+                
+                <div class="info-text" style="background: #110a1a; border-radius: 20px; padding: 16px; margin: 20px 0;">
+                    🌕 Матка может быть открыта только:<br>
+                    - на убывающую луну<br>
+                    - в конце января<br>
+                    - в солнечную погоду<br>
+                    - при грибном дожде<br>
+                    - после достижения 25-летнего возраста<br>
+                    - на 4 день месячных<br>
+                    Только в этом случае открывается денежный поток и поток сознания.
+                </div>
+                
+                <!-- энергия в процентах -->
+                <label>🔋 Энергия матки:</label>
+                <progress id="wombEnergy" value="78" max="100"></progress>
+                
+                <!-- график энергии chart.js -->
+                <div class="section-title">📈 Квантовая осциллограмма</div>
+                <canvas id="energyCanvas" width="500" height="200" style="width:100%; max-height:220px; background:#0d0512; border-radius: 24px;"></canvas>
+                
+                <!-- луна (вращение) -->
+                <div class="section-title">🌖 Лунный модулятор</div>
+                <div id="moonWidget" class="moon-spinner">🌙</div>
+                
+                <!-- фейк сканер (бегущая линия) -->
+                <div class="section-title">📡 Сканер ауры поля</div>
+                <div class="fake-scanner-canvas">
+                    <canvas id="fakeScanCanvas" width="600" height="70" style="width:100%; height:100%;"></canvas>
+                </div>
+                
+                <!-- ПРЕМИУМ СКАНЕР (встроенный со всеми функциями) -->
+                <div id="premiumScannerBlock" style="background: #0a0312; border-radius: 32px; padding: 20px; margin: 20px 0; border: 1px solid #ff44dd;">
+                    <h3 style="color:#ffaaff">🔮 DeepWomb™ AI Scanner PRO</h3>
+                    <div id="scannerStatus" class="status-text">🌙 AI Scanner OFFLINE</div>
+                    <div id="premiumSubscription" class="status-text" style="background:#43004b;">🌙 PREMIUM INACTIVE</div>
+                    <progress id="scanProgress" value="0" max="100"></progress>
+                    
+                    <div class="section-title">⚡ КВАНТОВЫЕ ТАРИФЫ</div>
+                    <div id="tariffsContainer"></div>
+                    
+                    <div id="scannerMetrics" class="metrics">
+                        Moon Ping: 4ms<br>
+                        Quantum Uptime: 99.9%<br>
+                        Aura GPU: RTX 5090 Ti<br>
+                        Rendering womb consciousness...
+                    </div>
+                    
+                    <button id="scanButton" class="glow-btn">🚀 Запустить AI-анализ кармы</button>
+                </div>
+                
+                <!-- кнопки ритуалов (случайные фразы) -->
+                <div class="flex-buttons">
+                    <button class="glow-btn ritual-action">🌀 Открыть квантовую матку</button>
+                    <button class="glow-btn ritual-action">💰 Синхронизировать денежные вибрации</button>
+                    <button class="glow-btn ritual-action">🧹 Очистить чакру налоговой</button>
+                    <button class="glow-btn ritual-action">✨ Активировать поток изобилия</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ---------- ГЛОБАЛЬНЫЕ ДАННЫЕ ----------
+    let premiumPaid = false;
+    let premiumClicks = 0;
+    let scanTimer = null;
+    let scanValue = 0;
+    
+    let ritualSeconds = 40000;
+    let ritualTimerInterval = null;
+    
+    let fakeScanAnimation = null;
+    let fakeCanvas = null, fakeCtx = null;
+    let moonAngle = 0;
+    let moonAnimFrame = null;
+    const moonDiv = document.getElementById('moonWidget');
+    
+    const RITUAL_PHRASES = [
+        "Луна приняла ваш запрос", "Маточное поле стабилизировано", "Канал изобилия прогрет",
+        "Космическая бухгалтерия одобряет вибрации", "Чакра налоговой очищена",
+        "Вибрации синхронизированы с ретроградным Меркурием", "Энергия грибного дождя усиливается",
+        "Маточная ось вошла в квантовый резонанс", "Высшие силы оформили рассрочку на карму",
+        "Крипто-астрал готов к загрузке"
+    ];
+    function randomRitualPhrase() { return RITUAL_PHRASES[Math.floor(Math.random() * RITUAL_PHRASES.length)]; }
+    
+    const SCAN_RESULTS = [
+        "Карма совместима с луной на 73%", "Маточное облако перегружено", "Обнаружен ретроградный кэш",
+        "Лунный AI рекомендует купить ещё один курс", "Аура синхронизирована с NFT-вселенной",
+        "Чакра денег ушла в timeout", "Обнаружен дефицит premium-вибраций",
+    ];
+    
+    const TARIFFS = [["Womb Basic", "400 ₽"], ["Goddess PRO", "1490 ₽"], ["Lunar Oracle MAX", "9990 ₽"], ["Quantum Empress ELITE", "77777 ₽"]];
+    
+    function updateTimerDisplay() {
+        let h = Math.floor(ritualSeconds / 3600);
+        let m = Math.floor((ritualSeconds % 3600) / 60);
+        let s = ritualSeconds % 60;
+        document.getElementById('ritualTimer').innerText = `⏳ До открытия потока: ${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+        if(ritualSeconds <= 0 && ritualTimerInterval) {
+            clearInterval(ritualTimerInterval);
+            ritualTimerInterval = null;
+            document.getElementById('ritualTimer').innerText = "🌀 ПОТОК ОТКРЫТ! Энергия безгранична";
+        }
+    }
+    
+    function startRitualTimer() {
+        if(ritualTimerInterval) clearInterval(ritualTimerInterval);
+        ritualTimerInterval = setInterval(() => {
+            if(ritualSeconds > 0) { ritualSeconds--; updateTimerDisplay(); }
+            else { clearInterval(ritualTimerInterval); ritualTimerInterval = null; }
+        }, 1000);
+        updateTimerDisplay();
+    }
+    
+    let energyChart = null;
+    function initEnergyChart() {
+        const ctx = document.getElementById('energyCanvas').getContext('2d');
+        const randomData = Array.from({length: 30}, () => Math.floor(Math.random() * 100));
+        energyChart = new Chart(ctx, {
+            type: 'line',
+            data: { labels: Array.from({length:30}, (_,i)=>i+1), datasets: [{ label: 'Колебания маточной энергии', data: randomData, borderColor: '#ff44dd', backgroundColor: 'rgba(255,68,221,0.1)', borderWidth: 2, tension: 0.3, fill: true, pointRadius: 2 }] },
+            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { color: '#eeddff' } } }, scales: { y: { grid: { color: '#3a2350' }, ticks: { color: '#ccbbff' } }, x: { ticks: { color: '#ccbbff' } } } }
+        });
+    }
+    
+    function initFakeScanner() {
+        fakeCanvas = document.getElementById('fakeScanCanvas');
+        if(!fakeCanvas) return;
+        fakeCtx = fakeCanvas.getContext('2d');
+        function resizeCanvas() { if(fakeCanvas) { fakeCanvas.width = fakeCanvas.parentElement.clientWidth; fakeCanvas.height = 70; } }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        let posY = 0;
+        function drawFake() {
+            if(!fakeCtx || !fakeCanvas) return;
+            const w = fakeCanvas.width, h = fakeCanvas.height;
+            fakeCtx.clearRect(0,0,w,h);
+            fakeCtx.fillStyle = "#100b18";
+            fakeCtx.fillRect(0,0,w,h);
+            fakeCtx.fillStyle = "#ff44ffcc";
+            fakeCtx.shadowBlur = 10;
+            fakeCtx.shadowColor = "#ff00cc";
+            fakeCtx.fillRect(0, posY, w, 8);
+            fakeCtx.shadowBlur = 0;
+            posY += 3;
+            if(posY > h) posY = 0;
+            requestAnimationFrame(() => { if(fakeScanAnimation) drawFake(); });
+        }
+        if(fakeScanAnimation) cancelAnimationFrame(fakeScanAnimation);
+        fakeScanAnimation = true;
+        function animate() { if(fakeScanAnimation) { drawFake(); requestAnimationFrame(animate); } }
+        animate();
+    }
+    
+    function startMoonRotation() {
+        let angle = 0;
+        function rotateMoon() {
+            angle = (angle + 2) % 360;
+            if(moonDiv) moonDiv.style.transform = `rotate(${angle}deg)`;
+            moonAnimFrame = requestAnimationFrame(rotateMoon);
+        }
+        if(moonAnimFrame) cancelAnimationFrame(moonAnimFrame);
+        rotateMoon();
+    }
+    
+    function renderTariffs() {
+        const container = document.getElementById('tariffsContainer');
+        if(!container) return;
+        container.innerHTML = '';
+        TARIFFS.forEach(([name, price]) => {
+            const card = document.createElement('div');
+            card.className = 'tariff-card';
+            card.innerHTML = `<span class="tariff-title">${name}</span><span class="tariff-price">${price}</span>`;
+            container.appendChild(card);
+        });
+    }
+    
+    function updatePremiumUI() {
+        const subLabel = document.getElementById('premiumSubscription');
+        const statusLabel = document.getElementById('scannerStatus');
+        if(premiumPaid) {
+            subLabel.innerHTML = "🌙 PREMIUM ACTIVE<br>Следующее списание: в следующее полнолуние";
+            subLabel.style.background = "#1e4d2e";
+            if(statusLabel.innerText.includes("OFFLINE") || statusLabel.innerText === "AI Scanner OFFLINE")
+                statusLabel.innerText = "✅ Premium-доступ одобрен высшими силами";
+        } else {
+            subLabel.innerHTML = "🌙 PREMIUM INACTIVE";
+            subLabel.style.background = "#43004b";
+            if(statusLabel.innerText.includes("одобрен")) statusLabel.innerText = "AI Scanner OFFLINE";
+        }
+    }
+    
+    function showPaywall() {
+        const overlay = document.createElement('div');
+        overlay.style.position = 'fixed'; overlay.style.top='0'; overlay.style.left='0';
+        overlay.style.width='100%'; overlay.style.height='100%'; overlay.style.backgroundColor='rgba(0,0,0,0.8)';
+        overlay.style.backdropFilter='blur(5px)'; overlay.style.zIndex='10000';
+        overlay.style.display='flex'; overlay.style.alignItems='center'; overlay.style.justifyContent='center';
+        const dialog = document.createElement('div');
+        dialog.style.backgroundColor='#1f0a2a'; dialog.style.borderRadius='36px'; dialog.style.padding='30px';
+        dialog.style.border='2px solid #ff44dd'; dialog.style.maxWidth='400px'; dialog.style.textAlign='center';
+        dialog.innerHTML = `<h3 style="color:#ffbbff">⚠ Premium Upgrade Required</h3><p>⚠ Функция доступна только<br>в тарифе DEEP WOMB PREMIUM AI+<br><strong>Стоимость: 400 ₽</strong></p><button id="buyPremiumBtn" style="background:#aa22ff; margin:8px; padding:10px 20px; border:none; border-radius:40px; color:white; font-weight:bold;">💎 Разблокировать через квантовую оплату</button><button id="cancelPremiumBtn" style="background:#331a44; margin:8px; padding:10px 20px; border:none; border-radius:40px;">🌀 Позже синхронизировать ауру</button>`;
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+        document.getElementById('buyPremiumBtn').onclick = () => { overlay.remove(); activatePremiumFlow(); };
+        document.getElementById('cancelPremiumBtn').onclick = () => overlay.remove();
+    }
+    
+    function activatePremiumFlow() {
+        const statusSpan = document.getElementById('scannerStatus');
+        const steps = ["Подключение к lunar blockchain...", "Проверка NFT-совместимости матки...", "Загрузка AI-мантр...", "Синхронизация с DeepWomb™ Cluster..."];
+        let stepIdx = 0;
+        function updateStep() {
+            if(stepIdx < steps.length) { statusSpan.innerText = steps[stepIdx]; stepIdx++; setTimeout(updateStep, stepIdx === 1 ? 1000 : (stepIdx===2?1200:1300)); }
+            else { setTimeout(() => { premiumPaid = true; updatePremiumUI(); statusSpan.innerText = "✅ Premium-доступ одобрен высшими силами"; document.getElementById('premiumSubscription').innerHTML = "🌙 PREMIUM ACTIVE<br>Следующее списание: в следующее полнолуние"; }, 800); }
+        }
+        updateStep();
+    }
+    
+    function startScan() {
+        if(premiumClicks > 10) { document.getElementById('scannerStatus').innerText = "⚠ Обнаружен взлом ауры"; return; }
+        if(!premiumPaid) { showPaywall(); return; }
+        if(scanTimer) clearInterval(scanTimer);
+        scanValue = 0;
+        const progressBar = document.getElementById('scanProgress');
+        const statusSpan = document.getElementById('scannerStatus');
+        progressBar.value = 0;
+        scanTimer = setInterval(() => {
+            scanValue += 3;
+            if(scanValue > 100) scanValue = 100;
+            progressBar.value = scanValue;
+            if(scanValue < 30) statusSpan.innerText = "AI анализирует маточное поле...";
+            else if(scanValue < 60) statusSpan.innerText = "Сканирование денежной чакры...";
+            else if(scanValue < 90) statusSpan.innerText = "Нейросеть луны строит прогноз...";
+            if(scanValue >= 100) { clearInterval(scanTimer); scanTimer = null; statusSpan.innerText = SCAN_RESULTS[Math.floor(Math.random() * SCAN_RESULTS.length)]; }
+        }, 60);
+    }
+    
+    function onScanButtonClick() {
+        premiumClicks++;
+        if(premiumClicks > 10) { document.getElementById('scannerStatus').innerText = "⚠ Обнаружен взлом ауры"; return; }
+        if(!premiumPaid) showPaywall();
+        else startScan();
+    }
+    
+    // Переключение экранов
+    const welcomeDiv = document.getElementById('welcomeScreen');
+    const paymentDiv = document.getElementById('paymentScreen');
+    const ritualDiv = document.getElementById('ritualScreen');
+    
+    let paymentTimer = null;
+    let paymentValue = 0;
+    let paymentActive = false;
+    
+    function gotoPayment() {
+        welcomeDiv.classList.add('hidden');
+        paymentDiv.classList.remove('hidden');
+        ritualDiv.classList.add('hidden');
+    }
+    
+    function gotoRitual() {
+        welcomeDiv.classList.add('hidden');
+        paymentDiv.classList.add('hidden');
+        ritualDiv.classList.remove('hidden');
+        if(!energyChart) initEnergyChart();
+        if(!fakeScanAnimation) initFakeScanner();
+        if(!moonAnimFrame) startMoonRotation();
+        if(!ritualTimerInterval) startRitualTimer();
+    }
+    
+    function startFakePayment() {
+        if(paymentActive) return;
+        paymentActive = true;
+        const progress = document.getElementById('paymentProgress');
+        const statusDiv = document.getElementById('paymentStatus');
+        const btn = document.getElementById('startPaymentBtn');
+        btn.disabled = true;
+        paymentValue = 0;
+        const messages = ["Сканирование ауры...", "Проверка вибраций луны...", "Синхронизация с денежным эгрегором..."];
+        if(paymentTimer) clearInterval(paymentTimer);
+        paymentTimer = setInterval(() => {
+            paymentValue += 5;
+            if(paymentValue > 100) paymentValue = 100;
+            progress.value = paymentValue;
+            let idx = Math.floor((paymentValue / 30) % 3);
+            statusDiv.innerText = messages[idx];
+            if(paymentValue >= 100) {
+                clearInterval(paymentTimer);
+                paymentTimer = null;
+                statusDiv.innerText = "✅ Оплата успешно принята высшими силами";
+                setTimeout(() => { gotoRitual(); paymentActive = false; btn.disabled = false; }, 1500);
+            }
+        }, 80);
+    }
+    
+    function bindRitualButtons() {
+        document.querySelectorAll('.ritual-action').forEach(btn => { btn.addEventListener('click', () => alert(randomRitualPhrase())); });
+    }
+    
+    window.addEventListener('DOMContentLoaded', () => {
+        renderTariffs();
+        updatePremiumUI();
+        document.getElementById('scanButton').addEventListener('click', onScanButtonClick);
+        document.getElementById('welcomeToPaymentBtn').addEventListener('click', gotoPayment);
+        document.getElementById('startPaymentBtn').addEventListener('click', startFakePayment);
+        document.getElementById('wombEnergy').value = 78;
+        bindRitualButtons();
+        ritualSeconds = 40000;
+        updateTimerDisplay();
+        premiumClicks = 0;
+        premiumPaid = false;
+        updatePremiumUI();
+    });
+    
+    window.addEventListener('beforeunload', ()=>{
+        if(scanTimer) clearInterval(scanTimer);
+        if(paymentTimer) clearInterval(paymentTimer);
+        if(ritualTimerInterval) clearInterval(ritualTimerInterval);
+        if(fakeScanAnimation) fakeScanAnimation = false;
+        if(moonAnimFrame) cancelAnimationFrame(moonAnimFrame);
+    });
+</script>
+</body>
+</html>
